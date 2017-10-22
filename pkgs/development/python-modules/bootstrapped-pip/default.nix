@@ -24,14 +24,16 @@ let
 
 in stdenv.mkDerivation rec {
   pname = "pip";
-  version = "9.0.1";
+  version = "10";
   name = "${python.libPrefix}-bootstrapped-${pname}-${version}";
 
-  src = fetchPypi {
-    inherit pname version;
-    format = "wheel";
-    sha256 = "690b762c0a8460c303c089d5d0be034fb15a5ea2b75bdf565f40421f542fefb0";
-  };
+  #src = fetchPypi {
+  #  inherit pname version;
+  #  format = "wheel";
+  #  sha256 = "690b762c0a8460c303c089d5d0be034fb15a5ea2b75bdf565f40421f542fefb0";
+  #};
+
+  src = ./37f236de70fd22782c2948362ff0ed0ba2cf1d17/pip-10.0.0.dev0-py2.py3-none-any.whl;
 
   unpackPhase = ''
     mkdir -p $out/${python.sitePackages}
@@ -52,7 +54,7 @@ in stdenv.mkDerivation rec {
 
     # install pip binary
     echo '#!${python.interpreter}' > $out/bin/pip
-    echo 'import sys;from pip import main' >> $out/bin/pip
+    echo 'import sys;from pip._internal import main' >> $out/bin/pip
     echo 'sys.exit(main())' >> $out/bin/pip
     chmod +x $out/bin/pip
 
