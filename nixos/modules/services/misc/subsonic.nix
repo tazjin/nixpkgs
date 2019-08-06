@@ -96,7 +96,7 @@ let cfg = config.services.subsonic; in {
         description = ''
           List of paths to transcoder executables that should be accessible
           from Subsonic. Symlinks will be created to each executable inside
-          ${cfg.home}/transcoders.
+          $home/transcoders.
         '';
       };
     };

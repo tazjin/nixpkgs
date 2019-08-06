@@ -35,8 +35,9 @@ in
           collection tool.
 
           With the default configuration, ntopng monitors all network
-          interfaces and displays its findings at http://localhost:${toString
-          cfg.http-port}. Default username and password is admin/admin.
+          interfaces and displays its findings at
+          http://localhost:$http-port. Default username and password
+          is admin/admin.
 
           See the ntopng(8) manual page and http://www.ntop.org/products/ntop/
           for more info.

@@ -174,7 +174,7 @@ in {
         example = "/storage/tank";
         description = ''
           ZoneMinder can generate quite a lot of data, so in case you don't want
-          to use the default ${home}, you can override the path here.
+          to use the default $home, you can override the path here.
         '';
       };
 

@@ -247,7 +247,7 @@ in {
         type = types.bool;
         default = false;
         description = ''
-          Allow mediatomb to create and use its own config file inside ${cfg.dataDir}.
+          Allow mediatomb to create and use its own config file inside $dataDir.
         '';
       };
     };

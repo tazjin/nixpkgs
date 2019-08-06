@@ -41,7 +41,7 @@ in
           Transmission daemon can be controlled via the RPC interface using
           transmission-remote or the WebUI (http://localhost:9091/ by default).
 
-          Torrents are downloaded to ${downloadDir} by default and are
+          Torrents are downloaded to $downloadDir by default and are
           accessible to users in the "transmission" group.
         '';
       };

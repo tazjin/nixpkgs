@@ -60,7 +60,7 @@ in
         description = ''
           The name of the savegame that will be used by the server.
 
-          When not present in ${stateDir}/saves, a new map with default
+          When not present in $stateDir/saves, a new map with default
           settings will be generated before starting the service.
         '';
       };
