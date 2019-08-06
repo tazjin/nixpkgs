@@ -1,4 +1,4 @@
-{ pkgs, lib, config, options, ... }:
+{ pkgs, lib, config, ... }:
 
 with lib;
 
@@ -24,7 +24,7 @@ in
     servers = mkOption {
       default = config.services.ntp.servers;
       type = types.listOf types.str;
-      inherit (options.services.ntp.servers) description;
+      description = "The set of NTP servers from which to synchronise.";
     };
 
     extraConfig = mkOption {
