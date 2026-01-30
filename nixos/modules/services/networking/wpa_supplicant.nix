@@ -85,6 +85,11 @@ let
     cfg.userControlled
   ];
 
+  # wpa supplicant, optionally with hardening-related patches applied.
+  wpaSupplicant = pkgs.wpa_supplicant.override {
+    unprivileged = cfg.enableHardening;
+  };
+
   # Creates a systemd unit for wpa_supplicant bound to a given (or any) interface
   mkUnit =
     iface:
@@ -115,21 +120,43 @@ let
       stopIfChanged = false;
       restartTriggers = [ config.environment.etc."wpa_supplicant/nixos.conf".source ];
 
-      path = [ pkgs.wpa_supplicant ];
+      path = [ wpaSupplicant ];
       serviceConfig = {
+        RuntimeDirectory = "wpa_supplicant";
+
+
+        UMask = "0077";
+
+        ExecStartPre =
+          lib.optionals (cfg.allowAuxiliaryImperativeNetworks || !hasDeclarative) [
+            # set up imperative config file
+            "+${pkgs.coreutils}/bin/touch /etc/wpa_supplicant/imperative.conf"
+            "+${pkgs.coreutils}/bin/chmod 664 /etc/wpa_supplicant/imperative.conf"
+            "+${pkgs.coreutils}/bin/chown -R wpa_supplicant:wpa_supplicant /etc/wpa_supplicant"
+          ]
+          ++ lib.optionals cfg.userControlled [
+            # set up client sockets directory
+            "+${pkgs.coreutils}/bin/mkdir /run/wpa_supplicant/client"
+            "+${pkgs.coreutils}/bin/chown wpa_supplicant:wpa_supplicant /run/wpa_supplicant/client"
+            "+${pkgs.coreutils}/bin/chmod g=u /run/wpa_supplicant/client"
+          ];
+      } // lib.mkIf cfg.enableHardening {
         User = "wpa_supplicant";
         Group = "wpa_supplicant";
-        RuntimeDirectory = "wpa_supplicant";
+
         AmbientCapabilities = [
           "CAP_NET_ADMIN"
           "CAP_NET_RAW"
         ];
+
         CapabilityBoundingSet = [
           "CAP_NET_ADMIN"
           "CAP_NET_RAW"
         ];
+
         RootDirectory = "/run/wpa_supplicant";
         RootDirectoryStartOnly = true;
+
         BindPaths = [
           "/etc/wpa_supplicant" # to write wpa_supplicant.conf{,.tmp}
           "/run/wpa_supplicant" # to make control sockets
@@ -139,12 +166,15 @@ let
         ]
         ++ lib.optional cfg.dbusControlled "/run/dbus"
         ++ lib.optional cfg.allowAuxiliaryImperativeNetworks "/etc/wpa_supplicant";
+
         BindReadOnlyPaths = [
           builtins.storeDir
           "/etc/"
         ]
         ++ lib.optional (cfg.secretsFile != null) cfg.secretsFile;
+
         DeviceAllow = "/dev/rfkill rw";
+
         LockPersonality = true;
         MemoryDenyWriteExecute = true;
         NoNewPrivileges = true;
@@ -179,21 +209,6 @@ let
           "~@resources"
         ];
         SystemCallArchitectures = "native";
-        UMask = "0077";
-
-        ExecStartPre =
-          lib.optionals (cfg.allowAuxiliaryImperativeNetworks || !hasDeclarative) [
-            # set up imperative config file
-            "+${pkgs.coreutils}/bin/touch /etc/wpa_supplicant/imperative.conf"
-            "+${pkgs.coreutils}/bin/chmod 664 /etc/wpa_supplicant/imperative.conf"
-            "+${pkgs.coreutils}/bin/chown -R wpa_supplicant:wpa_supplicant /etc/wpa_supplicant"
-          ]
-          ++ lib.optionals cfg.userControlled [
-            # set up client sockets directory
-            "+${pkgs.coreutils}/bin/mkdir /run/wpa_supplicant/client"
-            "+${pkgs.coreutils}/bin/chown wpa_supplicant:wpa_supplicant /run/wpa_supplicant/client"
-            "+${pkgs.coreutils}/bin/chmod g=u /run/wpa_supplicant/client"
-          ];
       };
 
       script = ''
@@ -588,6 +603,22 @@ in
         '';
       };
 
+      enableHardening = mkOption {
+        default = true;
+        description = ''
+          Whether to apply security hardening measures to wpa_supplicant.
+          These include limiting access to the filesystem, devices and network
+          capabilities.
+
+          ::: {.note}
+          Disabling this will increase the potential attack surface if the
+          wpa_supplicant daemon becomes compromised, but it may be necessary
+          for more complex enterprise networks (for example requiring
+          access to mutable files, smart cards or TPM devices).
+          :::
+        '';
+      };
+
       dbusControlled = mkOption {
         type = types.bool;
         default = lib.length cfg.interfaces < 2;
@@ -695,7 +726,7 @@ in
 
     hardware.wirelessRegulatoryDatabase = true;
 
-    environment.systemPackages = [ pkgs.wpa_supplicant ];
+    environment.systemPackages = [ wpaSupplicant ];
 
     # NixOS-generated configuration files
     environment.etc."wpa_supplicant/nixos.conf".text = concatStringsSep "\n" (
@@ -713,7 +744,7 @@ in
       ++ optional (cfg.extraConfig != "") cfg.extraConfig
     );
 
-    services.dbus.packages = optional cfg.dbusControlled pkgs.wpa_supplicant;
+    services.dbus.packages = optional cfg.dbusControlled wpaSupplicant;
 
     systemd.services =
       if cfg.interfaces == [ ] then
